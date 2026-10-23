@@ -1,0 +1,1050 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Probability Tree</title>
+<meta name="description" content="Draw probability trees in English or Hebrew and copy them straight into Word">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#E8EDF2; --grid:#D3DEE9; --panel:#FFFFFF; --ink:#14213D; --muted:#5B6B80;
+  --line:#D5DDE6; --accent:#1F6F9E; --accent-ink:#FFFFFF; --err:#B3261E; --ok:#1B7F4B; --field:#F6F8FA;
+  --stage:#DCE5EE;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10161D; --grid:#1D2833; --panel:#18212B; --ink:#E6EDF5; --muted:#93A4B8;
+    --line:#2B3846; --accent:#6DB6E0; --accent-ink:#0B1A26; --err:#FF8A80; --ok:#7BD9A3; --field:#111A23;
+    --stage:#141D26;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10161D; --grid:#1D2833; --panel:#18212B; --ink:#E6EDF5; --muted:#93A4B8;
+  --line:#2B3846; --accent:#6DB6E0; --accent-ink:#0B1A26; --err:#FF8A80; --ok:#7BD9A3; --field:#111A23;
+  --stage:#141D26;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:16px/1.5 Heebo,"Segoe UI",Arial,sans-serif}
+.wrap{max-width:1280px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:16px}
+h1{margin:0;font-size:30px;font-weight:800;letter-spacing:-.01em;line-height:1.2}
+h2{margin:0;font-size:17px;font-weight:700}
+.sub{color:var(--muted);margin:4px 0 0;font-size:15px;max-width:60ch}
+.grid{display:grid;grid-template-columns:minmax(340px,480px) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:920px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.card-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.hint{color:var(--muted);font-size:14px;margin:0 0 12px}
+.preview{position:sticky;top:12px;min-width:0}
+@media (max-width:920px){.preview{position:static}}
+
+input[type=text],select{font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0;width:100%;box-sizing:border-box}
+select{width:auto}
+input:focus-visible,button:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.prob{direction:ltr;text-align:center}
+.prob.bad{border-color:var(--err);color:var(--err)}
+.prob.auto::placeholder{color:var(--accent);opacity:1;font-style:italic}
+
+.rootrow{margin-bottom:12px}
+.rootrow label{display:block;font-size:14px;color:var(--muted);margin-bottom:4px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) 104px 34px;gap:6px;align-items:center;margin-bottom:2px}
+.subact{min-height:24px;margin-bottom:4px}
+.kids{margin-inline-start:12px;padding-inline-start:12px;border-inline-start:2px solid var(--line);margin-bottom:6px}
+.cap{font-size:13px;color:var(--muted);margin:0 0 6px}
+.group-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:2px 0 10px;font-size:13px}
+.sum{color:var(--muted)}
+.sum.ok{color:var(--ok)}
+.sum.warn{color:var(--err)}
+
+.btn{font:inherit;font-weight:500;border-radius:9px;padding:8px 14px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.small{padding:5px 10px;font-size:14px}
+.link{background:none;border:0;color:var(--accent);font:inherit;font-size:14px;padding:3px 2px;cursor:pointer}
+.link:hover{text-decoration:underline}
+.x{background:none;border:1px solid transparent;color:var(--muted);border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:15px}
+.x:hover{color:var(--err);border-color:var(--line)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+.stage{direction:ltr;overflow:auto;background-color:var(--stage);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:22px 22px;border-radius:10px;padding:16px;min-height:200px}
+.sheet{background:#fff;width:fit-content;max-width:100%;margin:0 auto;box-shadow:0 1px 2px rgba(20,33,61,.12),0 8px 24px rgba(20,33,61,.10)}
+.sheet svg{display:block;max-width:100%;height:auto}
+.empty{margin:40px auto;text-align:center;color:var(--muted)}
+.tabbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.tablist{display:flex;gap:6px;overflow-x:auto;max-width:100%;flex:1 1 auto;min-width:0;padding:2px 0}
+.tab{display:flex;align-items:center;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:2px 4px;flex:0 0 auto}
+.tab.active{border-color:var(--accent);box-shadow:inset 0 -3px 0 var(--accent)}
+.tabname{background:none;border:0;font:inherit;color:var(--ink);padding:6px 10px;cursor:pointer;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tab.active .tabname{font-weight:700}
+.tab .mini{background:none;border:0;color:var(--muted);cursor:pointer;padding:4px 7px;border-radius:6px;font:inherit;font-size:14px}
+.tab .mini:hover{color:var(--ink)}
+.tab .mini.danger:hover{color:var(--err)}
+.tab input{width:150px;padding:5px 8px}
+#pathbox{margin-top:12px;font-size:15px}
+#pathbox .hintline{color:var(--muted);font-size:14px;margin:0}
+#pathbox .pbhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+#pathbox ul{margin:4px 0 6px;padding-inline-start:20px}
+#pathbox li{margin:2px 0}
+#pathbox .tot{font-weight:700}
+.sheet [data-nid]{cursor:pointer}
+.lang{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.lang button{font:inherit;font-size:14px;background:var(--panel);color:var(--ink);border:0;padding:5px 12px;cursor:pointer}
+.lang button.on{background:var(--accent);color:var(--accent-ink);font-weight:700}
+html[dir="rtl"] .empty{direction:rtl}
+#total{font-size:14px;color:var(--muted)}
+#total.ok{color:var(--ok)}
+#total.warn{color:var(--err)}
+
+details.opts{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+details.opts summary{cursor:pointer;font-weight:500}
+.optgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 16px;margin-top:10px;font-size:15px}
+.optgrid label{display:flex;flex-direction:column;gap:4px;color:var(--muted);font-size:14px}
+.optgrid label.chk{flex-direction:row;align-items:center;gap:8px;color:var(--ink);font-size:15px}
+.optgrid input[type=range]{width:100%}
+
+.export{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.export .tools{margin-bottom:8px}
+.how{font-size:14px;color:var(--muted);margin:0}
+#fallback{display:none;margin-top:12px}
+#fallback.show{display:block}
+#fallback img{max-width:100%;border:1px solid var(--line);background:#fff;display:block}
+#fallback p{font-size:14px;color:var(--muted);margin:0 0 6px}
+
+#toast{position:fixed;inset-inline:0;bottom:calc(16px + env(safe-area-inset-bottom,0px));margin:0 auto;width:fit-content;max-width:min(92vw,520px);
+  background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:15px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
+#toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 data-i18n="title"></h1>
+      <p class="sub" data-i18n="subtitle"></p>
+    </div>
+    <div class="tools">
+      <div class="lang" role="group" aria-label="Language / שפה">
+        <button type="button" data-lang="en">English</button>
+        <button type="button" data-lang="he">עברית</button>
+      </div>
+      <button class="btn small" type="button" id="btnExample" data-i18n="btnExample"></button>
+      <button class="btn small" type="button" id="btnClear" data-i18n="btnClear"></button>
+    </div>
+  </header>
+
+  <div class="tabbar">
+    <div class="tablist" id="tablist" role="tablist" data-i18n-aria="tabsAria"></div>
+    <button class="btn small" type="button" id="btnNewTab" data-i18n="btnNewTab"></button>
+    <button class="btn small" type="button" id="btnDupTab" data-i18n="btnDupTab"></button>
+  </div>
+
+  <div class="grid">
+    <section class="card" aria-labelledby="edTitle">
+      <div class="card-head"><h2 id="edTitle" data-i18n="edTitle"></h2></div>
+      <p class="hint" data-i18n="hint"></p>
+      <div class="rootrow">
+        <label for="rootLabel" data-i18n="rootLabel"></label>
+        <input type="text" id="rootLabel" data-i18n-ph="rootPh" autocomplete="off">
+      </div>
+      <div id="editor"></div>
+    </section>
+
+    <section class="card preview" aria-labelledby="pvTitle">
+      <div class="card-head">
+        <h2 id="pvTitle" data-i18n="pvTitle"></h2>
+        <span id="total"></span>
+      </div>
+      <div class="stage" id="stage"></div>
+
+      <div id="pathbox"></div>
+
+      <details class="opts">
+        <summary data-i18n="optsSummary"></summary>
+        <div class="optgrid">
+          <label><span data-i18n="optOrient"></span>
+            <select id="optOrient">
+              <option value="v" data-i18n="orientV"></option>
+              <option value="h" data-i18n="orientH"></option>
+            </select>
+          </label>
+          <label><span data-i18n="optHl"></span>
+            <select id="optHl">
+              <option value="red" data-i18n="hlRed"></option>
+              <option value="blue" data-i18n="hlBlue"></option>
+              <option value="green" data-i18n="hlGreen"></option>
+              <option value="orange" data-i18n="hlOrange"></option>
+            </select>
+          </label>
+          <label><span data-i18n="optDir"></span>
+            <select id="optDir">
+              <option value="ltr" data-i18n="dirLtr"></option>
+              <option value="rtl" data-i18n="dirRtl"></option>
+            </select>
+          </label>
+          <label><span data-i18n="optFmt"></span>
+            <select id="optFmt">
+              <option value="auto" data-i18n="fmtAuto"></option>
+              <option value="fraction" data-i18n="fmtFraction"></option>
+              <option value="decimal" data-i18n="fmtDecimal"></option>
+              <option value="percent" data-i18n="fmtPercent"></option>
+            </select>
+          </label>
+          <label><span data-i18n="optDigits"></span>
+            <select id="optDigits">
+              <option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option>
+            </select>
+          </label>
+          <label><span data-i18n="optLen"></span>
+            <input type="range" id="optLen" min="110" max="280" step="10" value="170">
+          </label>
+          <label class="chk"><input type="checkbox" id="optJoint" checked> <span data-i18n="optJoint"></span></label>
+          <label class="chk"><input type="checkbox" id="optPath" checked> <span data-i18n="optPath"></span></label>
+          <label class="chk"><input type="checkbox" id="optColor"> <span data-i18n="optColor"></span></label>
+        </div>
+      </details>
+
+      <div class="export">
+        <div class="tools">
+          <button class="btn primary" type="button" id="btnCopy" data-i18n="btnCopy"></button>
+          <button class="btn" type="button" id="btnPng" data-i18n="btnPng" hidden></button>
+          <button class="btn" type="button" id="btnSvg" data-i18n="btnSvg" hidden></button>
+          <button class="btn" type="button" id="btnShow" data-i18n="btnShow"></button>
+        </div>
+        <p class="how" data-i18n="how"></p>
+        <div id="fallback">
+          <p data-i18n="fbHelp"></p>
+          <img id="fbImg" data-i18n-alt="fbAlt" alt="">
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+const $ = s => document.querySelector(s);
+const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+/* ---------- i18n ---------- */
+const L = {
+  en: {
+    title:'Probability Tree',
+    subtitle:'Enter the outcomes and probabilities for each step and the tree builds instantly. Then copy it straight into Word.',
+    btnExample:'Load example', btnClear:'Clear tree', tabsAria:'My trees', btnNewTab:'＋ New tree', btnDupTab:'Duplicate tree',
+    edTitle:'Branches',
+    hint:'Write a probability as a decimal (0.3), a fraction (3/10) or a percentage (30%). If exactly one branch in a group has no probability, it is completed automatically. Press Enter to move to the next field; Enter in the last probability field adds a new branch.',
+    rootLabel:'Starting point (optional)', rootPh:'e.g. Start',
+    pvTitle:'Preview', optsSummary:'Display options',
+    optOrient:'Drawing direction', orientV:'Vertical (root on top)', orientH:'Horizontal (root on the side)',
+    optHl:'Path highlight color', hlRed:'Red', hlBlue:'Blue', hlGreen:'Green', hlOrange:'Orange',
+    optDir:'Branch order', dirLtr:'Left to right', dirRtl:'Right to left',
+    optFmt:'Joint probability shown as', fmtAuto:'As entered', fmtFraction:'Fraction', fmtDecimal:'Decimal', fmtPercent:'Percent',
+    optDigits:'Digits after the decimal point', optLen:'Branch length',
+    optJoint:'Probability at the end of each path', optPath:'Path name (A ∩ B)', optColor:'Colored tree',
+    btnCopy:'Copy image', btnPng:'Download PNG', btnSvg:'Download SVG', btnShow:'Show as image',
+    how:'In Word: paste with Ctrl+V (Mac: Cmd+V), or Insert → Pictures. The image is created in high resolution on a white background.',
+    fbHelp:'Right-click the image → Copy image (or long-press on a phone → Save).',
+    fbAlt:'The probability tree as an image',
+    errFormat:'Invalid format', errDiv:'Division by zero', errRange:'A probability must be between 0 and 1',
+    errOver:'The other branches already add up to more than 1',
+    exSick:'Sick', exHealthy:'Healthy', exPos:'Positive', exNeg:'Negative',
+    treeWord:'Tree', exampleName:'Example', copySuffix:'(copy)',
+    tabNameAria:'Tree name', tabDbl:'Double-click to rename', tabSwitch:'Switch to this tree',
+    rename:'Rename', renameTree:'Rename tree', confirmDel:'Delete?', delTree:'Delete tree', treeDeleted:'Tree deleted.',
+    sumInvalid:'Invalid probability', sumMissing:'Probabilities missing', sumOk:'Sum: 1 ✓',
+    sumLow:(a,b)=>`Sum ${a} — missing ${b}`, sumHigh:a=>`Sum ${a} — over 1`,
+    addBranch:'＋ Add branch', addFirst:'＋ Add first branch',
+    outcomeName:'Outcome name', probability:'Probability', delBranch:'Delete branch',
+    capAfter:'Branches after: ', nextStep:'＋ Next step after this branch',
+    cloneKids:'Copy these branches to the other branches without follow-ups',
+    cloned:c=>`Copied to ${c} ${c===1?'branch':'branches'}. Update the probabilities if they differ.`,
+    clonedNone:'The other branches already have follow-ups.',
+    autoDone:'Completed automatically: ',
+    pathHint:'Tip: click a box in the tree to highlight the path leading to it. You can highlight several paths and get the sum of their probabilities.',
+    pathsMarked:'Highlighted paths', clearMarks:'Clear highlight', sumLabel:'Sum: ',
+    emptyStage:'No branches yet. Add the first branch in the branches list.',
+    totalOk:'Sum of all paths: 1 ✓', totalLabel:'Sum of all paths: ',
+    noShow:'There is no tree to show yet.', noCopy:'There is no tree to copy yet.', noSave:'There is no tree to save yet.',
+    copied:'Image copied. Now press Ctrl+V in Word.',
+    copyBlocked:'The browser doesn’t allow direct copying here. Right-click the image below → Copy image.',
+    saved:'File saved.', saveFail:'Saving failed. You can copy the image instead.',
+    exampleToast:'Example opened in a new tab. Your other trees are untouched.',
+    dupToast:'A copy of the tree was created in a new tab.',
+    clearConfirm:'Sure? Click again', clearTree:'Clear tree'
+  },
+  he: {
+    title:'עץ הסתברות',
+    subtitle:'מלאו את התוצאות וההסתברויות בכל שלב, והעץ נבנה מיד. אחרי זה מעתיקים אותו ישר לוורד.',
+    btnExample:'טעינת דוגמה', btnClear:'ניקוי העץ', tabsAria:'העצים שלי', btnNewTab:'＋ עץ חדש', btnDupTab:'שכפול העץ',
+    edTitle:'הענפים',
+    hint:'הסתברות אפשר לכתוב כעשרוני (0.3), כשבר (3/10) או כאחוזים (30%). ענף אחד שנשאר בלי הסתברות מושלם אוטומטית ל־1. מקש Enter עובר לשדה הבא ופותח ענף חדש בסוף הרשימה.',
+    rootLabel:'נקודת ההתחלה (לא חובה)', rootPh:'למשל: התחלה',
+    pvTitle:'התצוגה המקדימה', optsSummary:'אפשרויות תצוגה',
+    optOrient:'כיוון הציור', orientV:'אנכי (שורש למעלה)', orientH:'אופקי (שורש בצד)',
+    optHl:'צבע סימון המסלול', hlRed:'אדום', hlBlue:'כחול', hlGreen:'ירוק', hlOrange:'כתום',
+    optDir:'סדר הענפים', dirLtr:'משמאל לימין', dirRtl:'מימין לשמאל',
+    optFmt:'הסתברות משותפת מוצגת כ־', fmtAuto:'כמו שהוזן', fmtFraction:'שבר', fmtDecimal:'עשרוני', fmtPercent:'אחוזים',
+    optDigits:'ספרות אחרי הנקודה העשרונית', optLen:'אורך הענפים',
+    optJoint:'הסתברות בסוף כל מסלול', optPath:'שם המסלול (A ∩ B)', optColor:'עץ צבעוני',
+    btnCopy:'העתקת תמונה', btnPng:'הורדת PNG', btnSvg:'הורדת SVG', btnShow:'הצגה כתמונה',
+    how:'בוורד: הדביקו עם Ctrl+V (ב־Mac: Cmd+V), או הוספה ← תמונות. התמונה נוצרת ברזולוציה גבוהה על רקע לבן.',
+    fbHelp:'קליק ימני על התמונה ← העתקת תמונה (או לחיצה ארוכה בטלפון ← שמירה).',
+    fbAlt:'עץ ההסתברות כתמונה',
+    errFormat:'פורמט לא תקין', errDiv:'חילוק באפס', errRange:'הסתברות חייבת להיות בין 0 ל־1',
+    errOver:'הסכום של שאר הענפים עולה על 1',
+    exSick:'חולה', exHealthy:'בריא', exPos:'חיובי', exNeg:'שלילי',
+    treeWord:'עץ', exampleName:'דוגמה', copySuffix:'(עותק)',
+    tabNameAria:'שם העץ', tabDbl:'לחיצה כפולה לשינוי שם', tabSwitch:'מעבר לעץ הזה',
+    rename:'שינוי שם', renameTree:'שינוי שם העץ', confirmDel:'למחוק?', delTree:'מחיקת העץ', treeDeleted:'העץ נמחק.',
+    sumInvalid:'יש הסתברות לא תקינה', sumMissing:'חסרות הסתברויות', sumOk:'סכום: 1 ✓',
+    sumLow:(a,b)=>`סכום ${a} — חסר ${b}`, sumHigh:a=>`סכום ${a} — עובר את 1`,
+    addBranch:'＋ ענף נוסף', addFirst:'＋ הוספת ענף ראשון',
+    outcomeName:'שם התוצאה', probability:'הסתברות', delBranch:'מחיקת הענף',
+    capAfter:'ענפים אחרי: ', nextStep:'＋ שלב הבא אחרי ענף זה',
+    cloneKids:'שכפול הענפים האלה לשאר הענפים בלי המשך',
+    cloned:c=>`הועתק ל־${c} ענפים. עדכנו את ההסתברויות אם הן שונות.`,
+    clonedNone:'לשאר הענפים כבר יש המשך.',
+    autoDone:'הושלם אוטומטית: ',
+    pathHint:'טיפ: לחצו על תיבה בעץ כדי לסמן את המסלול אליה. אפשר לסמן כמה מסלולים ולקבל את סכום ההסתברויות שלהם.',
+    pathsMarked:'המסלולים המסומנים', clearMarks:'נקה סימון', sumLabel:'סכום: ',
+    emptyStage:'עוד אין ענפים. הוסיפו ענף ראשון ברשימת הענפים.',
+    totalOk:'סכום כל המסלולים: 1 ✓', totalLabel:'סכום כל המסלולים: ',
+    noShow:'אין עדיין עץ להצגה.', noCopy:'אין עדיין עץ להעתקה.', noSave:'אין עדיין עץ לשמירה.',
+    copied:'התמונה הועתקה. עכשיו Ctrl+V בוורד.',
+    copyBlocked:'הדפדפן לא מאפשר העתקה ישירה כאן. קליק ימני על התמונה שמופיעה מתחת ← העתקת תמונה.',
+    saved:'הקובץ נשמר.', saveFail:'השמירה לא הצליחה. אפשר להעתיק את התמונה במקום.',
+    exampleToast:'נפתחה דוגמה בלשונית חדשה. העצים האחרים שלך נשארו כמו שהיו.',
+    dupToast:'נוצר עותק של העץ בלשונית חדשה.',
+    clearConfirm:'בטוח? לחצו שוב', clearTree:'ניקוי העץ'
+  }
+};
+const tr = (k,...a) => {
+  const d = L[settings.lang] || L.en;
+  const v = (k in d) ? d[k] : L.en[k];
+  return typeof v === 'function' ? v(...a) : v;
+};
+function localizeName(n){
+  const w=tr('treeWord');
+  let m=/^(?:עץ|Tree) (\d+)$/.exec(n);
+  if(m) return w+' '+m[1];
+  if(n==='דוגמה' || n==='Example') return tr('exampleName');
+  m=/^(.*) \((?:עותק|copy)\)$/.exec(n);
+  if(m) return localizeName(m[1])+' '+tr('copySuffix');
+  return n;
+}
+function applyStatic(){
+  const lang = settings.lang==='he' ? 'he' : 'en';
+  document.documentElement.lang=lang;
+  document.documentElement.dir = lang==='he' ? 'rtl' : 'ltr';
+  document.title=tr('title');
+  document.querySelectorAll('[data-i18n]').forEach(e=>{ e.textContent=tr(e.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(e=>{ e.placeholder=tr(e.dataset.i18nPh); });
+  document.querySelectorAll('[data-i18n-aria]').forEach(e=>{ e.setAttribute('aria-label',tr(e.dataset.i18nAria)); });
+  document.querySelectorAll('[data-i18n-alt]').forEach(e=>{ e.alt=tr(e.dataset.i18nAlt); });
+  document.querySelectorAll('[data-lang]').forEach(b=>{
+    const on=b.dataset.lang===lang;
+    b.classList.toggle('on',on); b.setAttribute('aria-pressed',on?'true':'false');
+  });
+}
+function setLang(l){
+  settings.lang = l==='he' ? 'he' : 'en';
+  tabs.forEach(x=>{ x.name=localizeName(x.name); });
+  applyStatic(); fullRender(); saveSoon();
+}
+
+/* ---------- rational arithmetic (exact) ---------- */
+const gcd = (a,b)=>{ a=a<0n?-a:a; b=b<0n?-b:b; while(b){ [a,b]=[b,a%b]; } return a; };
+const R = (n,d=1n)=>{ if(d<0n){ n=-n; d=-d; } const g=gcd(n,d)||1n; return {n:n/g,d:d/g}; };
+const add=(a,b)=>R(a.n*b.d+b.n*a.d,a.d*b.d);
+const sub=(a,b)=>R(a.n*b.d-b.n*a.d,a.d*b.d);
+const mul=(a,b)=>R(a.n*b.n,a.d*b.d);
+const cmp=(a,b)=>{ const x=a.n*b.d, y=b.n*a.d; return x<y?-1:x>y?1:0; };
+const ONE = R(1n), ZERO = R(0n);
+
+function parseNum(s){
+  const m=/^(\d*)(?:\.(\d*))?$/.exec(s);
+  if(!m) return null;
+  if(m[1]==='' && (m[2]===undefined || m[2]==='')) return null;
+  const ip=m[1]||'0', fp=m[2]||'';
+  return R(BigInt(ip+fp), 10n**BigInt(fp.length));
+}
+function parseP(raw){
+  let s=String(raw).trim().replace(/,/g,'.').replace(/\s+/g,'');
+  if(!s) return {blank:true};
+  let pct=false;
+  if(s.endsWith('%')){ pct=true; s=s.slice(0,-1); }
+  let r;
+  if(s.includes('/')){
+    const parts=s.split('/');
+    if(parts.length!==2) return {err:tr('errFormat')};
+    const a=parseNum(parts[0]), b=parseNum(parts[1]);
+    if(!a||!b) return {err:tr('errFormat')};
+    if(b.n===0n) return {err:tr('errDiv')};
+    r=R(a.n*b.d, a.d*b.n);
+  } else r=parseNum(s);
+  if(!r) return {err:tr('errFormat')};
+  if(pct) r=R(r.n, r.d*100n);
+  if(r.n>r.d) return {err:tr('errRange')};
+  return {r};
+}
+const fmtFrac = r => r.d===1n ? String(r.n) : r.n+'/'+r.d;
+function fmtDec(r,digits,pct){
+  let n=r.n; const d=r.d;
+  if(pct) n*=100n;
+  const scale=10n**BigInt(digits);
+  const num=(n*scale*2n+d)/(2n*d);
+  const s=num.toString().padStart(digits+1,'0');
+  const ip=s.slice(0,s.length-digits);
+  const fp=s.slice(s.length-digits).replace(/0+$/,'');
+  const exact=(num*d===n*scale);
+  return (exact?'':'≈')+ip+(fp?'.'+fp:'')+(pct?'%':'');
+}
+function fmtStyle(r,style,digits){
+  if(style==='fraction') return fmtFrac(r);
+  if(style==='percent') return fmtDec(r, Math.max(1,(digits||4)-2), true);
+  return fmtDec(r, digits||6, false);
+}
+const styleOf = list => list.some(k=>k.p.includes('/')) ? 'fraction' : list.some(k=>k.p.includes('%')) ? 'percent' : 'decimal';
+
+/* ---------- state ---------- */
+let uid = 1;
+const N = (label='', p='', children=[]) => ({id:uid++, label, p, children});
+const clone = n => ({id:uid++, label:n.label, p:n.p, children:n.children.map(clone)});
+let root = N();
+const marked = new Set();
+const settings = {lang:'en', hl:'red', orient:'v', dir:'ltr', fmt:'auto', digits:4, len:170, showJoint:true, showPath:true, color:false};
+const STORE_KEY = 'prob-tree-v2', OLD_KEY = 'prob-tree-v1';
+let tabs = [], activeId = null, tabSeq = 1;
+let renamingId = null, delArmed = false, delT;
+
+function exampleBuilder(r){
+  r.children=[
+    N(tr('exSick'),'0.01',[N(tr('exPos'),'0.95'),N(tr('exNeg'),'0.05')]),
+    N(tr('exHealthy'),'0.99',[N(tr('exPos'),'0.1'),N(tr('exNeg'),'0.9')])
+  ];
+}
+const newTabObj = (name, rootNode, uidVal, markedArr) => ({id:'t'+(tabSeq++), name, root:rootNode, uid:uidVal, marked:markedArr||[]});
+function stash(){
+  const t=tabs.find(x=>x.id===activeId);
+  if(t){ t.root=root; t.uid=uid; t.marked=[...marked]; }
+}
+function activate(id){
+  const t=tabs.find(x=>x.id===id);
+  if(!t) return;
+  activeId=id; root=t.root; uid=t.uid;
+  marked.clear(); t.marked.forEach(i=>marked.add(i));
+  renamingId=null; delArmed=false;
+}
+function nextName(){ let n=1; const w=tr('treeWord'); while(tabs.some(x=>x.name===w+' '+n)) n++; return w+' '+n; }
+function addTab(name, builder){
+  stash();
+  uid=1; const r=N();
+  if(builder) builder(r);
+  const t=newTabObj(name||nextName(), r, uid, []);
+  tabs.push(t); activate(t.id);
+}
+
+function save(){
+  try{
+    stash();
+    localStorage.setItem(STORE_KEY, JSON.stringify({tabs, active:activeId, settings}, (k,v)=> k[0]==='_' ? undefined : v));
+  }catch(e){}
+}
+function validRoot(r){
+  const ok=n=>n && typeof n.label==='string' && typeof n.p==='string' && Array.isArray(n.children) && n.children.every(ok);
+  return !!r && Array.isArray(r.children) && r.children.every(ok);
+}
+function restore(){
+  try{
+    const raw=localStorage.getItem(STORE_KEY);
+    if(raw){
+      const d=JSON.parse(raw);
+      if(d && Array.isArray(d.tabs)){
+        const good=d.tabs.filter(t=>t && typeof t.name==='string' && validRoot(t.root));
+        if(good.length){
+          tabs=good.map(t=>({id:String(t.id), name:t.name, root:t.root, uid:Math.max(+t.uid||1,1000), marked:Array.isArray(t.marked)?t.marked.filter(i=>typeof i==='number'):[]}));
+          tabs.forEach(t=>{ if(typeof t.root.label!=='string') t.root.label=''; });
+          Object.assign(settings, d.settings||{});
+          tabSeq=1+Math.max(0,...tabs.map(t=>parseInt(String(t.id).slice(1),10)||0));
+          activate(tabs.some(t=>t.id===d.active) ? d.active : tabs[0].id);
+          return true;
+        }
+      }
+    }
+    const old=localStorage.getItem(OLD_KEY);
+    if(old){
+      const d=JSON.parse(old);
+      if(d && validRoot(d.root)){
+        Object.assign(settings, d.settings||{});
+        if(typeof d.root.label!=='string') d.root.label='';
+        const t=newTabObj(tr('treeWord')+' 1', d.root, Math.max(+d.uid||1,1000), Array.isArray(d.marked)?d.marked.filter(i=>typeof i==='number'):[]);
+        tabs=[t]; activate(t.id);
+        return true;
+      }
+    }
+  }catch(e){}
+  return false;
+}
+let saveT;
+const saveSoon = () => { clearTimeout(saveT); saveT=setTimeout(save,300); };
+
+/* ---------- tabs ---------- */
+function switchTab(id){ if(id===activeId) return; stash(); activate(id); fullRender(); saveSoon(); }
+function commitRename(val){
+  if(renamingId===null) return;
+  const t=tabs.find(x=>x.id===renamingId);
+  renamingId=null;
+  if(t){ const v=val.trim(); if(v) t.name=v; }
+  renderTabs(); saveSoon();
+}
+function renderTabs(){
+  const list=$('#tablist'); list.textContent='';
+  tabs.forEach(t=>{
+    const active=t.id===activeId;
+    const box=h('div','tab'+(active?' active':''));
+    box.setAttribute('role','tab'); box.setAttribute('aria-selected',active?'true':'false');
+    if(active && renamingId===t.id){
+      const inp=h('input'); inp.type='text'; inp.value=t.name; inp.maxLength=40; inp.setAttribute('aria-label',tr('tabNameAria'));
+      inp.addEventListener('keydown',e=>{
+        if(e.key==='Enter'){ e.preventDefault(); commitRename(inp.value); }
+        else if(e.key==='Escape'){ e.preventDefault(); renamingId=null; renderTabs(); }
+      });
+      inp.addEventListener('blur',()=>commitRename(inp.value));
+      box.appendChild(inp);
+      list.appendChild(box);
+      setTimeout(()=>{ inp.focus(); inp.select(); },0);
+      return;
+    }
+    const nm=h('button','tabname',t.name); nm.type='button'; nm.title=active?tr('tabDbl'):tr('tabSwitch');
+    nm.onclick=()=>switchTab(t.id);
+    nm.ondblclick=()=>{ if(!active) return; renamingId=t.id; renderTabs(); };
+    box.appendChild(nm);
+    if(active){
+      const rn=h('button','mini','✎'); rn.type='button'; rn.title=tr('rename'); rn.setAttribute('aria-label',tr('renameTree'));
+      rn.onclick=()=>{ renamingId=t.id; renderTabs(); };
+      box.appendChild(rn);
+      if(tabs.length>1){
+        const del=h('button','mini danger',delArmed?tr('confirmDel'):'✕'); del.type='button'; del.title=tr('delTree'); del.setAttribute('aria-label',tr('delTree'));
+        del.onclick=()=>{
+          if(!delArmed){ delArmed=true; renderTabs(); clearTimeout(delT); delT=setTimeout(()=>{ delArmed=false; renderTabs(); },3000); return; }
+          clearTimeout(delT); delArmed=false;
+          const i=tabs.findIndex(x=>x.id===activeId);
+          tabs.splice(i,1);
+          activate(tabs[Math.min(i,tabs.length-1)].id);
+          fullRender(); saveSoon(); toast(tr('treeDeleted'));
+        };
+        box.appendChild(del);
+      }
+    }
+    list.appendChild(box);
+  });
+}
+
+/* ---------- evaluation ---------- */
+function evaluate(parent){
+  const kids=parent.children;
+  if(!kids.length){ parent._info=null; return; }
+  const parsed=kids.map(k=>parseP(k.p));
+  const blanks=parsed.filter(x=>x.blank).length;
+  const anyErr=parsed.some(x=>x.err);
+  let sum=ZERO;
+  parsed.forEach(x=>{ if(x.r) sum=add(sum,x.r); });
+  const style=styleOf(kids);
+  kids.forEach((k,i)=>{
+    const x=parsed[i];
+    k._err=null; k._auto=false;
+    if(x.r){ k._p=x.r; k._txt=k.p.trim().replace(/,/g,'.'); }
+    else if(x.blank && blanks===1 && !anyErr){
+      const c=sub(ONE,sum);
+      if(c.n<0n){ k._p=null; k._err=tr('errOver'); k._txt='?'; }
+      else { k._p=c; k._auto=true; k._txt=fmtStyle(c,style,6); }
+    } else { k._p=null; k._err=x.err||null; k._txt='?'; }
+  });
+  const all=kids.every(k=>k._p);
+  let info;
+  if(!all){
+    info = (anyErr || kids.some(k=>k._err)) ? {cls:'warn', text:tr('sumInvalid')} : {cls:'', text:tr('sumMissing')};
+  } else {
+    let tot=ZERO; kids.forEach(k=>{ tot=add(tot,k._p); });
+    const c=cmp(tot,ONE);
+    if(c===0) info={cls:'ok', text:tr('sumOk')};
+    else if(c<0) info={cls:'warn', text:tr('sumLow',fmtStyle(tot,style,6),fmtStyle(sub(ONE,tot),style,6))};
+    else info={cls:'warn', text:tr('sumHigh',fmtStyle(tot,style,6))};
+  }
+  parent._info=info;
+  kids.forEach(evaluate);
+}
+
+/* ---------- editor ---------- */
+let probList=[], sumList=[];
+function focusLabel(id){
+  const e=document.querySelector('[data-id="'+id+'"] .lab');
+  if(e){ e.focus(); e.select(); }
+}
+function renderEditor(){
+  probList=[]; sumList=[];
+  const host=$('#editor'); host.innerHTML='';
+  host.appendChild(renderGroup(root));
+  updateStatus();
+}
+function renderGroup(parent){
+  const g=h('div','group');
+  parent.children.forEach(n=>g.appendChild(renderBranch(n,parent)));
+  const foot=h('div','group-foot');
+  const addB=h('button','btn small',parent.children.length?tr('addBranch'):tr('addFirst')); addB.type='button';
+  addB.onclick=()=>{ const n=N(); parent.children.push(n); renderEditor(); refresh(); focusLabel(n.id); };
+  const sumEl=h('span','sum');
+  foot.append(addB,sumEl);
+  g.appendChild(foot);
+  sumList.push([parent,sumEl]);
+  return g;
+}
+function renderBranch(node,parent){
+  const wrap=h('div','branch'); wrap.dataset.id=node.id;
+  const row=h('div','row');
+  const lab=h('input','lab'); lab.type='text'; lab.placeholder=tr('outcomeName'); lab.value=node.label; lab.autocomplete='off'; lab.setAttribute('aria-label',tr('outcomeName'));
+  const pr=h('input','prob'); pr.type='text'; pr.placeholder=tr('probability'); pr.value=node.p; pr.autocomplete='off'; pr.inputMode='text'; pr.setAttribute('aria-label',tr('probability'));
+  const del=h('button','x','✕'); del.type='button'; del.title=tr('delBranch'); del.setAttribute('aria-label',tr('delBranch'));
+  row.append(lab,pr,del);
+  wrap.appendChild(row);
+  probList.push([node,pr]);
+
+  let cap=null;
+  lab.addEventListener('input',()=>{ node.label=lab.value; if(cap) cap.textContent=tr('capAfter')+(node.label.trim()||'…'); refresh(); });
+  pr.addEventListener('input',()=>{ node.p=pr.value; refresh(); });
+  lab.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); pr.focus(); pr.select(); } });
+  pr.addEventListener('keydown',e=>{
+    if(e.key!=='Enter') return;
+    e.preventDefault();
+    const i=parent.children.indexOf(node);
+    if(i===parent.children.length-1){ const n=N(); parent.children.push(n); renderEditor(); refresh(); focusLabel(n.id); }
+    else focusLabel(parent.children[i+1].id);
+  });
+  del.onclick=()=>{ parent.children=parent.children.filter(x=>x!==node); renderEditor(); refresh(); };
+
+  const sa=h('div','subact');
+  if(!node.children.length){
+    const b=h('button','link',tr('nextStep')); b.type='button';
+    b.onclick=()=>{ node.children=[N()]; renderEditor(); refresh(); focusLabel(node.children[0].id); };
+    sa.appendChild(b);
+  } else if(parent.children.length>1){
+    const b=h('button','link',tr('cloneKids')); b.type='button';
+    b.onclick=()=>{
+      let c=0;
+      parent.children.forEach(sb=>{ if(sb!==node && !sb.children.length){ sb.children=node.children.map(clone); c++; } });
+      renderEditor(); refresh();
+      toast(c ? tr('cloned',c) : tr('clonedNone'));
+    };
+    sa.appendChild(b);
+  }
+  wrap.appendChild(sa);
+
+  if(node.children.length){
+    const kids=h('div','kids');
+    cap=h('p','cap',tr('capAfter')+(node.label.trim()||'…'));
+    kids.appendChild(cap);
+    kids.appendChild(renderGroup(node));
+    wrap.appendChild(kids);
+  }
+  return wrap;
+}
+function updateStatus(){
+  probList.forEach(([n,inp])=>{
+    inp.classList.toggle('bad', !!n._err);
+    inp.classList.toggle('auto', !!n._auto);
+    inp.title=n._err||(n._auto?tr('autoDone')+n._txt:'');
+    inp.placeholder = n._auto ? n._txt : tr('probability');
+  });
+  sumList.forEach(([p,el])=>{
+    const info=p._info;
+    el.textContent=info?info.text:'';
+    el.className='sum'+(info&&info.cls?' '+info.cls:'');
+  });
+}
+
+/* ---------- tree drawing ---------- */
+const FONT='Arial, Segoe UI, Helvetica, sans-serif';
+const mctx=document.createElement('canvas').getContext('2d');
+const tw=(t,size,bold)=>{ mctx.font=(bold?'bold ':'')+size+'px '+FONT; return mctx.measureText(t).width; };
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const dirOf=t=>/[\u0590-\u05FF]/.test(t)?'rtl':'ltr';
+
+function allNodes(n,out=[]){ n.children.forEach(c=>{ out.push(c); allNodes(c,out); }); return out; }
+function jointStyle(){
+  if(settings.fmt!=='auto') return settings.fmt;
+  const all=allNodes(root);
+  return styleOf(all);
+}
+
+function buildSVG(){
+  const S=settings, FS=16, PFS=14, LFS=14, boxH=34, padX=12, rowH=62, pad=24;
+  const s=S.dir==='rtl'?-1:1;
+  const nodes=[]; let leaf=0;
+  const fmtJ=r=>fmtStyle(r, jointStyle(), +S.digits);
+  (function walk(n,d,path,pj,par){
+    n._d=d; n._path=path; n._par=par; nodes.push(n);
+    n._j = d===0 ? ONE : (pj && n._p ? mul(pj,n._p) : null);
+    if(!n.children.length) n._y=leaf++;
+    else{
+      n.children.forEach(c=>walk(c,d+1,path.concat(c.label.trim()||'?'),n._j,n));
+      n._y=(n.children[0]._y+n.children[n.children.length-1]._y)/2;
+    }
+  })(root,0,[],null,null);
+  const D=Math.max(...nodes.map(n=>n._d));
+  const w=[], gap=[];
+  const rootLab=root.label.trim();
+  w[0]= rootLab ? Math.max(40,tw(rootLab,FS,true)+2*padX) : 12;
+  for(let d=1; d<=D; d++){
+    const at=nodes.filter(n=>n._d===d);
+    w[d]=Math.max(40, ...at.map(n=>tw(n.label.trim()||'?',FS,true)+2*padX));
+    const pw=Math.max(...at.map(n=>tw(n._txt||'?',PFS)+14));
+    gap[d]=Math.max(+S.len, pw+70);
+  }
+  const cx=[]; let x=pad; cx[0]=x+w[0]/2; x+=w[0];
+  for(let d=1; d<=D; d++){ x+=gap[d]; cx[d]=x+w[d]/2; x+=w[d]; }
+
+  const leafTxt=n=>{
+    const parts=[];
+    if(S.showPath) parts.push(n._path.join(' ∩ '));
+    if(S.showJoint) parts.push(n._j ? fmtJ(n._j) : '?');
+    return parts.join(' = ');
+  };
+  let right=x;
+  nodes.forEach(n=>{
+    if(!n.children.length && n._d>0){
+      n._lt=leafTxt(n);
+      if(n._lt){ n._lw=tw(n._lt,LFS); right=Math.max(right, cx[n._d]+w[n._d]/2+14+n._lw); }
+    }
+  });
+  const W=Math.ceil(right+pad);
+  const H=Math.ceil(pad*2+(leaf-1)*rowH+boxH);
+  const X=v=> s===1 ? v : W-v;
+  const Y=n=>pad+n._y*rowH+boxH/2;
+
+  const C = S.color
+    ? {line:'#4B5E78', box:'#E8F1FB', stroke:'#1F6F9E', prob:'#B3261E', text:'#14213D'}
+    : {line:'#111111', box:'#FFFFFF', stroke:'#111111', prob:'#111111', text:'#111111'};
+  const T=(px,py,t,size,fill,bold)=>'<text x="'+px.toFixed(1)+'" y="'+py.toFixed(1)+'" dy="0.35em" text-anchor="middle" font-family="'+FONT+'" font-size="'+size+'"'+(bold?' font-weight="700"':'')+' fill="'+fill+'" direction="'+dirOf(t)+'" unicode-bidi="embed">'+esc(t)+'</text>';
+
+  let lines='', probs='', boxes='', leaves='';
+  nodes.forEach(n=>{
+    const p=n._par;
+    if(p){
+      const x1=X(cx[p._d])+s*w[p._d]/2, y1=Y(p), x2=X(cx[n._d])-s*w[n._d]/2, y2=Y(n);
+      lines+='<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+(HL(n)?HLC:C.line)+'" stroke-width="'+(HL(n)?3.8:1.6)+'"/>';
+      const mx=(x1+x2)/2, my=(y1+y2)/2, t=n._txt||'?', bad=(t==='?');
+      const rw=tw(t,PFS)+10;
+      probs+='<rect x="'+(mx-rw/2).toFixed(1)+'" y="'+(my-10).toFixed(1)+'" width="'+rw.toFixed(1)+'" height="20" rx="4" fill="#FFFFFF"/>'+T(mx,my,t,PFS,bad?'#B3261E':C.prob,false);
+    }
+    const cxn=X(cx[n._d]), cy=Y(n);
+    if(n._d===0){
+      if(rootLab) boxes+='<g data-nid="'+n.id+'"><rect x="'+(cxn-w[0]/2).toFixed(1)+'" y="'+(cy-boxH/2)+'" width="'+w[0].toFixed(1)+'" height="'+boxH+'" rx="8" fill="'+(HL(n)?HLF:C.box)+'" stroke="'+(HL(n)?HLC:C.stroke)+'" stroke-width="'+(HL(n)?3:1.6)+'"/>'+T(cxn,cy,rootLab,FS,C.text,true)+'</g>';
+      else boxes+='<circle cx="'+cxn.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="6" fill="'+C.stroke+'"/>';
+    } else {
+      const lbl=n.label.trim()||'?';
+      boxes+='<g data-nid="'+n.id+'"><rect x="'+(cxn-w[n._d]/2).toFixed(1)+'" y="'+(cy-boxH/2)+'" width="'+w[n._d].toFixed(1)+'" height="'+boxH+'" rx="8" fill="'+(HL(n)?HLF:C.box)+'" stroke="'+(HL(n)?HLC:C.stroke)+'" stroke-width="'+(HL(n)?3:1.6)+'"/>'+T(cxn,cy,lbl,FS,C.text,true)+'</g>';
+      if(!n.children.length && n._lt){
+        const lx=cxn+s*(w[n._d]/2+14+n._lw/2);
+        leaves+=T(lx,cy,n._lt,LFS,C.text,false);
+      }
+    }
+  });
+  // total of leaf joints
+  const leafNodes=nodes.filter(n=>!n.children.length && n._d>0);
+  let total=ZERO, known=true;
+  leafNodes.forEach(n=>{ if(n._j) total=add(total,n._j); else known=false; });
+
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'"><rect width="'+W+'" height="'+H+'" fill="#FFFFFF"/>'+lines+probs+boxes+leaves+'</svg>';
+  return {svg,W,H,total:known?total:null, style:jointStyle()};
+}
+
+function buildSVGV(){
+  const S=settings, FS=16, PFS=14, LFS=14, boxH=34, padX=12, pad=24;
+  const s=S.dir==='rtl'?-1:1;
+  const nodes=[]; let leaf=0;
+  const fmtJ=r=>fmtStyle(r, jointStyle(), +S.digits);
+  (function walk(n,d,path,pj,par){
+    n._d=d; n._path=path; n._par=par; nodes.push(n);
+    n._j = d===0 ? ONE : (pj && n._p ? mul(pj,n._p) : null);
+    if(!n.children.length) n._i=leaf++;
+    else{
+      n.children.forEach(c=>walk(c,d+1,path.concat(c.label.trim()||'?'),n._j,n));
+      n._i=(n.children[0]._i+n.children[n.children.length-1]._i)/2;
+    }
+  })(root,0,[],null,null);
+  const D=Math.max(...nodes.map(n=>n._d));
+  const rootLab=root.label.trim();
+  const bw=n=> n._d===0 ? (rootLab ? Math.max(40,tw(rootLab,FS,true)+2*padX) : 12) : Math.max(40,tw(n.label.trim()||'?',FS,true)+2*padX);
+  const leafTxt=n=>{
+    const parts=[];
+    if(S.showPath) parts.push(n._path.join(' ∩ '));
+    if(S.showJoint) parts.push(n._j ? fmtJ(n._j) : '?');
+    return parts.join(' = ');
+  };
+  let need=90;
+  nodes.forEach(n=>{
+    n._w=bw(n);
+    need=Math.max(need, n._w+30);
+    if(n._d>0) need=Math.max(need, 2*(tw(n._txt||'?',PFS)+14)+10);
+    if(!n.children.length && n._d>0){
+      n._lt=leafTxt(n);
+      if(n._lt){ n._lw=tw(n._lt,LFS); need=Math.max(need, n._lw+30); }
+    }
+  });
+  const colW=Math.ceil(need);
+  const vgap=Math.max(90, Math.round(+S.len*0.7));
+  const W=pad*2+leaf*colW;
+  const H=Math.ceil(pad*2+D*(boxH+vgap)+boxH+ (S.showPath||S.showJoint ? 26 : 0));
+  const X=n=>{ const v=pad+(n._i+0.5)*colW; return s===1 ? v : W-v; };
+  const Y=n=>pad+n._d*(boxH+vgap)+boxH/2;
+
+  const C = S.color
+    ? {line:'#4B5E78', box:'#E8F1FB', stroke:'#1F6F9E', prob:'#B3261E', text:'#14213D'}
+    : {line:'#111111', box:'#FFFFFF', stroke:'#111111', prob:'#111111', text:'#111111'};
+  const T=(px,py,t,size,fill,bold)=>'<text x="'+px.toFixed(1)+'" y="'+py.toFixed(1)+'" dy="0.35em" text-anchor="middle" font-family="'+FONT+'" font-size="'+size+'"'+(bold?' font-weight="700"':'')+' fill="'+fill+'" direction="'+dirOf(t)+'" unicode-bidi="embed">'+esc(t)+'</text>';
+
+  let lines='', probs='', boxes='', leaves='';
+  nodes.forEach(n=>{
+    const p=n._par, cxn=X(n), cy=Y(n);
+    if(p){
+      const x1=X(p), y1=Y(p)+(p._d===0 && !rootLab ? 6 : boxH/2), x2=cxn, y2=cy-boxH/2;
+      lines+='<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+(HL(n)?HLC:C.line)+'" stroke-width="'+(HL(n)?3.8:1.6)+'"/>';
+      const mx=(x1+x2)/2, my=(y1+y2)/2, t=n._txt||'?', bad=(t==='?');
+      const rw=tw(t,PFS)+10;
+      probs+='<rect x="'+(mx-rw/2).toFixed(1)+'" y="'+(my-10).toFixed(1)+'" width="'+rw.toFixed(1)+'" height="20" rx="4" fill="#FFFFFF"/>'+T(mx,my,t,PFS,bad?'#B3261E':C.prob,false);
+    }
+    if(n._d===0 && !rootLab){
+      boxes+='<circle cx="'+cxn.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="6" fill="'+C.stroke+'"/>';
+    } else {
+      const lbl=n._d===0 ? rootLab : (n.label.trim()||'?');
+      boxes+='<g data-nid="'+n.id+'"><rect x="'+(cxn-n._w/2).toFixed(1)+'" y="'+(cy-boxH/2)+'" width="'+n._w.toFixed(1)+'" height="'+boxH+'" rx="8" fill="'+(HL(n)?HLF:C.box)+'" stroke="'+(HL(n)?HLC:C.stroke)+'" stroke-width="'+(HL(n)?3:1.6)+'"/>'+T(cxn,cy,lbl,FS,C.text,true)+'</g>';
+    }
+    if(!n.children.length && n._d>0 && n._lt){
+      leaves+=T(cxn,cy+boxH/2+16,n._lt,LFS,C.text,false);
+    }
+  });
+  const leafNodes=nodes.filter(n=>!n.children.length && n._d>0);
+  let total=ZERO, known=true;
+  leafNodes.forEach(n=>{ if(n._j) total=add(total,n._j); else known=false; });
+
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'"><rect width="'+W+'" height="'+H+'" fill="#FFFFFF"/>'+lines+probs+boxes+leaves+'</svg>';
+  return {svg,W,H,total:known?total:null, style:jointStyle()};
+}
+
+/* ---------- path marking ---------- */
+const HLS={red:['#D32F2F','#FDE7E7'],blue:['#1565C0','#E3EFFB'],green:['#2E7D32','#E4F3E5'],orange:['#E65100','#FFEBDD']};
+let HLC='#D32F2F', HLF='#FDE7E7', onPath=new Set();
+const HL = n => onPath.has(n.id);
+const fmtJoint = r => fmtStyle(r, jointStyle(), +settings.digits);
+function computeOnPath(){
+  const c=HLS[settings.hl]||HLS.red; HLC=c[0]; HLF=c[1];
+  onPath=new Set();
+  const ids=new Set(allNodes(root).map(n=>n.id));
+  [...marked].forEach(id=>{ if(!ids.has(id)) marked.delete(id); });
+  (function dfs(n,trail){
+    const t=trail.concat(n.id);
+    if(marked.has(n.id)) t.forEach(i=>onPath.add(i));
+    n.children.forEach(ch=>dfs(ch,t));
+  })(root,[]);
+}
+function renderPathBox(){
+  const box=$('#pathbox'); box.textContent='';
+  const eff=[];
+  (function dfs(n,anc){
+    const isM = marked.has(n.id) && n!==root;
+    if(isM && !anc) eff.push(n);
+    n.children.forEach(ch=>dfs(ch, anc||isM));
+  })(root,false);
+  if(!eff.length){
+    box.appendChild(h('p','hintline',tr('pathHint')));
+    return;
+  }
+  const head=h('div','pbhead');
+  head.appendChild(h('strong',null,tr('pathsMarked')));
+  const clr=h('button','link',tr('clearMarks')); clr.type='button';
+  clr.onclick=()=>{ marked.clear(); drawTree(); saveSoon(); };
+  head.appendChild(clr);
+  box.appendChild(head);
+  const ul=h('ul');
+  let total=ZERO, known=true;
+  eff.forEach(n=>{
+    const probs=[]; for(let m=n; m._par; m=m._par) probs.unshift(m._txt||'?');
+    const val=n._j?fmtJoint(n._j):'?';
+    if(n._j) total=add(total,n._j); else known=false;
+    const li=h('li');
+    li.appendChild(document.createTextNode(n._path.join(' ∩ ')+': '));
+    const b=document.createElement('bdi'); b.dir='ltr'; b.textContent=probs.join(' × ')+' = '+val;
+    li.appendChild(b); ul.appendChild(li);
+  });
+  box.appendChild(ul);
+  if(eff.length>1){
+    const t=h('div','tot'); t.appendChild(document.createTextNode(tr('sumLabel')));
+    const b=document.createElement('bdi'); b.dir='ltr';
+    b.textContent=eff.map(n=>n._j?fmtJoint(n._j):'?').join(' + ')+(known?' = '+fmtJoint(total):'');
+    t.appendChild(b); box.appendChild(t);
+  }
+}
+
+let cur=null;
+function drawTree(){
+  const stage=$('#stage'), tot=$('#total');
+  if(!root.children.length){
+    stage.innerHTML='<p class="empty">'+esc(tr('emptyStage'))+'</p>';
+    tot.textContent=''; tot.className=''; cur=null; $('#pathbox').textContent=''; return;
+  }
+  computeOnPath();
+  cur=settings.orient==='h' ? buildSVG() : buildSVGV();
+  stage.innerHTML='<div class="sheet">'+cur.svg+'</div>';
+  renderPathBox();
+  const sv=stage.querySelector('svg');
+  sv.style.width=cur.W+'px';
+  sv.style.minWidth=Math.min(cur.W,640)+'px';
+  if(cur.total){
+    const eq=cmp(cur.total,ONE)===0;
+    tot.textContent=eq?tr('totalOk'):tr('totalLabel')+fmtStyle(cur.total,cur.style,+settings.digits);
+    tot.className=eq?'ok':'warn';
+  } else { tot.textContent=''; tot.className=''; }
+}
+function refresh(){ evaluate(root); updateStatus(); drawTree(); saveSoon(); }
+
+/* ---------- export ---------- */
+let toastT;
+function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),4500); }
+
+async function makePNG(scale=3){
+  if(!cur) throw new Error('empty');
+  const img=new Image();
+  const url='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(cur.svg);
+  await new Promise((res,rej)=>{ img.onload=res; img.onerror=()=>rej(new Error('img')); img.src=url; });
+  const c=document.createElement('canvas');
+  c.width=Math.round(cur.W*scale); c.height=Math.round(cur.H*scale);
+  const g=c.getContext('2d');
+  g.fillStyle='#fff'; g.fillRect(0,0,c.width,c.height);
+  g.drawImage(img,0,0,c.width,c.height);
+  return await new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('blob')),'image/png'));
+}
+function blobToDataURL(b){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(b); }); }
+async function showFallback(){
+  try{
+    const b=await makePNG(2);
+    $('#fbImg').src=await blobToDataURL(b);
+    $('#fallback').classList.add('show');
+  }catch(e){ toast(tr('noShow')); }
+}
+async function copyImage(){
+  if(!cur){ toast(tr('noCopy')); return; }
+  try{
+    if(!navigator.clipboard || !window.ClipboardItem) throw new Error('noclip');
+    await navigator.clipboard.write([new ClipboardItem({'image/png': makePNG(3)})]);
+    toast(tr('copied'));
+  }catch(e){
+    await showFallback();
+    toast(tr('copyBlocked'));
+  }
+}
+let dlc=null;
+async function download(kind){
+  if(!cur){ toast(tr('noSave')); return; }
+  if(!dlc){ await showFallback(); return; }
+  try{
+    const data = kind==='png' ? await makePNG(3) : cur.svg;
+    await dlc.save({filename: kind==='png' ? 'probability-tree.png' : 'probability-tree.svg', data});
+    toast(tr('saved'));
+  }catch(e){
+    if(e && e.code==='declined') return;
+    toast(tr('saveFail'));
+  }
+}
+
+/* ---------- wiring ---------- */
+function syncSettingsUI(){
+  $('#optOrient').value=settings.orient;
+  $('#optHl').value=settings.hl;
+  $('#optDir').value=settings.dir;
+  $('#optFmt').value=settings.fmt;
+  $('#optDigits').value=String(settings.digits);
+  $('#optLen').value=settings.len;
+  $('#optJoint').checked=!!settings.showJoint;
+  $('#optPath').checked=!!settings.showPath;
+  $('#optColor').checked=!!settings.color;
+}
+function bindSettings(){
+  const on=(id,ev,fn)=>$(id).addEventListener(ev,()=>{ fn(); drawTree(); saveSoon(); });
+  on('#optOrient','change',()=>settings.orient=$('#optOrient').value);
+  on('#optHl','change',()=>settings.hl=$('#optHl').value);
+  on('#optDir','change',()=>settings.dir=$('#optDir').value);
+  on('#optFmt','change',()=>settings.fmt=$('#optFmt').value);
+  on('#optDigits','change',()=>settings.digits=+$('#optDigits').value);
+  on('#optLen','input',()=>settings.len=+$('#optLen').value);
+  on('#optJoint','change',()=>settings.showJoint=$('#optJoint').checked);
+  on('#optPath','change',()=>settings.showPath=$('#optPath').checked);
+  on('#optColor','change',()=>settings.color=$('#optColor').checked);
+}
+function fullRender(){
+  renderTabs();
+  $('#rootLabel').value=root.label||'';
+  renderEditor(); refresh();
+}
+$('#stage').addEventListener('click',e=>{
+  const g=e.target.closest && e.target.closest('[data-nid]');
+  if(!g) return;
+  const id=+g.getAttribute('data-nid');
+  if(id===root.id) return;
+  if(marked.has(id)) marked.delete(id); else marked.add(id);
+  drawTree(); saveSoon();
+});
+$('#rootLabel').addEventListener('input',e=>{ root.label=e.target.value; refresh(); });
+$('#btnExample').onclick=()=>{ addTab(tr('exampleName'), exampleBuilder); fullRender(); saveSoon(); toast(tr('exampleToast')); };
+$('#btnNewTab').onclick=()=>{ addTab(nextName()); fullRender(); saveSoon(); };
+$('#btnDupTab').onclick=()=>{
+  stash();
+  const i=tabs.findIndex(x=>x.id===activeId), src=tabs[i];
+  const copy=JSON.parse(JSON.stringify(src.root,(k,v)=>k[0]==='_'?undefined:v));
+  const t=newTabObj(src.name+' '+tr('copySuffix'), copy, src.uid, [...src.marked]);
+  tabs.splice(i+1,0,t); activate(t.id); fullRender(); saveSoon(); toast(tr('dupToast'));
+};
+let clearArmed=false, clearT;
+$('#btnClear').onclick=function(){
+  if(!clearArmed){ clearArmed=true; this.textContent=tr('clearConfirm'); clearT=setTimeout(()=>{ clearArmed=false; this.textContent=tr('clearTree'); },3000); return; }
+  clearTimeout(clearT); clearArmed=false; this.textContent=tr('clearTree');
+  root.children=[]; root.label=''; marked.clear(); fullRender(); saveSoon();
+};
+$('#btnCopy').onclick=copyImage;
+$('#btnPng').onclick=()=>download('png');
+$('#btnSvg').onclick=()=>download('svg');
+$('#btnShow').onclick=showFallback;
+
+if(!restore()) addTab(tr('treeWord')+' 1'); else tabs.forEach(x=>{ x.name=localizeName(x.name); });
+document.querySelectorAll('[data-lang]').forEach(b=>b.addEventListener('click',()=>setLang(b.dataset.lang)));
+applyStatic(); syncSettingsUI(); bindSettings(); fullRender();
+
+try{
+  if(window.claude && typeof window.claude.use==='function'){
+    window.claude.use('downloads').then(d=>{
+      if(d){ dlc=d; $('#btnPng').hidden=false; $('#btnSvg').hidden=false; }
+    }).catch(()=>{});
+  } else {
+    // standalone hosting (e.g. GitHub Pages): regular browser downloads
+    dlc={ save: async ({filename,data})=>{
+      const blob = data instanceof Blob ? data : new Blob([data],{type:'image/svg+xml;charset=utf-8'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download=filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),2000);
+    }};
+    $('#btnPng').hidden=false; $('#btnSvg').hidden=false;
+  }
+}catch(e){}
+})();
+</script>
+</body>
+</html>
