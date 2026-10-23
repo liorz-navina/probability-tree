@@ -89,6 +89,7 @@ input:focus-visible,button:focus-visible,select:focus-visible,summary:focus-visi
 #pathbox{margin-top:12px;font-size:15px}
 #pathbox .hintline{color:var(--muted);font-size:14px;margin:0}
 #pathbox .pbhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+#pathbox .pbacts{display:flex;gap:12px}
 #pathbox ul{margin:4px 0 6px;padding-inline-start:20px}
 #pathbox li{margin:2px 0}
 #pathbox .tot{font-weight:700}
@@ -204,8 +205,8 @@ details.opts summary{cursor:pointer;font-weight:500}
           <label><span data-i18n="optLen"></span>
             <input type="range" id="optLen" min="110" max="280" step="10" value="170">
           </label>
-          <label class="chk"><input type="checkbox" id="optJoint" checked> <span data-i18n="optJoint"></span></label>
-          <label class="chk"><input type="checkbox" id="optPath" checked> <span data-i18n="optPath"></span></label>
+          <label class="chk"><input type="checkbox" id="optJoint"> <span data-i18n="optJoint"></span></label>
+          <label class="chk"><input type="checkbox" id="optPath"> <span data-i18n="optPath"></span></label>
           <label class="chk"><input type="checkbox" id="optColor"> <span data-i18n="optColor"></span></label>
         </div>
       </details>
@@ -269,8 +270,8 @@ const L = {
     cloned:c=>`Copied to ${c} ${c===1?'branch':'branches'}. Update the probabilities if they differ.`,
     clonedNone:'The other branches already have follow-ups.',
     autoDone:'Completed automatically: ',
-    pathHint:'Tip: click a box in the tree to highlight the path leading to it. You can highlight several paths and get the sum of their probabilities.',
-    pathsMarked:'Highlighted paths', clearMarks:'Clear highlight', sumLabel:'Sum: ',
+    pathHint:'Tip: click a box in the tree to highlight the path leading to it. Clicking a box further along the same path extends the highlight. You can highlight several paths, and reveal the calculation when you want to check your answer.',
+    pathsMarked:'Highlighted paths', clearMarks:'Clear highlight', sumLabel:'Sum: ', showCalc:'Show calculation', hideCalc:'Hide calculation',
     emptyStage:'No branches yet. Add the first branch in the branches list.',
     totalOk:'Sum of all paths: 1 ✓', totalLabel:'Sum of all paths: ',
     noShow:'There is no tree to show yet.', noCopy:'There is no tree to copy yet.', noSave:'There is no tree to save yet.',
@@ -314,8 +315,8 @@ const L = {
     cloned:c=>`הועתק ל־${c} ענפים. עדכנו את ההסתברויות אם הן שונות.`,
     clonedNone:'לשאר הענפים כבר יש המשך.',
     autoDone:'הושלם אוטומטית: ',
-    pathHint:'טיפ: לחצו על תיבה בעץ כדי לסמן את המסלול אליה. אפשר לסמן כמה מסלולים ולקבל את סכום ההסתברויות שלהם.',
-    pathsMarked:'המסלולים המסומנים', clearMarks:'נקה סימון', sumLabel:'סכום: ',
+    pathHint:'טיפ: לחצו על תיבה בעץ כדי לסמן את המסלול אליה. לחיצה על תיבה רחוקה יותר באותו מסלול מאריכה את הסימון. אפשר לסמן כמה מסלולים, ולהציג את החישוב כשרוצים לבדוק את התשובה.',
+    pathsMarked:'המסלולים המסומנים', clearMarks:'נקה סימון', sumLabel:'סכום: ', showCalc:'הצגת החישוב', hideCalc:'הסתרת החישוב',
     emptyStage:'עוד אין ענפים. הוסיפו ענף ראשון ברשימת הענפים.',
     totalOk:'סכום כל המסלולים: 1 ✓', totalLabel:'סכום כל המסלולים: ',
     noShow:'אין עדיין עץ להצגה.', noCopy:'אין עדיין עץ להעתקה.', noSave:'אין עדיין עץ לשמירה.',
@@ -421,7 +422,7 @@ const N = (label='', p='', children=[]) => ({id:uid++, label, p, children});
 const clone = n => ({id:uid++, label:n.label, p:n.p, children:n.children.map(clone)});
 let root = N();
 const marked = new Set();
-const settings = {lang:'en', hl:'red', orient:'v', dir:'ltr', fmt:'auto', digits:4, len:170, showJoint:true, showPath:true, color:false};
+const settings = {lang:'en', hl:'red', orient:'v', dir:'ltr', fmt:'auto', digits:4, len:170, showJoint:false, showPath:false, color:false};
 const STORE_KEY = 'prob-tree-v2', OLD_KEY = 'prob-tree-v1';
 let tabs = [], activeId = null, tabSeq = 1;
 let renamingId = null, delArmed = false, delT;
@@ -856,6 +857,7 @@ function computeOnPath(){
     n.children.forEach(ch=>dfs(ch,t));
   })(root,[]);
 }
+let showCalc=false;
 function renderPathBox(){
   const box=$('#pathbox'); box.textContent='';
   const eff=[];
@@ -869,11 +871,17 @@ function renderPathBox(){
     return;
   }
   const head=h('div','pbhead');
-  head.appendChild(h('strong',null,tr('pathsMarked')));
+  head.appendChild(h('strong',null,tr('pathsMarked')+' ('+eff.length+')'));
+  const acts=h('span','pbacts');
+  const tg=h('button','link',showCalc?tr('hideCalc'):tr('showCalc')); tg.type='button';
+  tg.setAttribute('aria-expanded',showCalc?'true':'false');
+  tg.onclick=()=>{ showCalc=!showCalc; renderPathBox(); };
   const clr=h('button','link',tr('clearMarks')); clr.type='button';
   clr.onclick=()=>{ marked.clear(); drawTree(); saveSoon(); };
-  head.appendChild(clr);
+  acts.append(tg,clr);
+  head.appendChild(acts);
   box.appendChild(head);
+  if(!showCalc) return;
   const ul=h('ul');
   let total=ZERO, known=true;
   eff.forEach(n=>{
@@ -999,7 +1007,22 @@ $('#stage').addEventListener('click',e=>{
   if(!g) return;
   const id=+g.getAttribute('data-nid');
   if(id===root.id) return;
-  if(marked.has(id)) marked.delete(id); else marked.add(id);
+  if(marked.has(id)) marked.delete(id);
+  else {
+    // one highlighted end per path: replace any ancestor/descendant on the same chain
+    const rel=new Set();
+    (function find(n,anc){
+      if(n.id===id){
+        anc.forEach(x=>rel.add(x));
+        (function all(m){ m.children.forEach(c=>{ rel.add(c.id); all(c); }); })(n);
+        return true;
+      }
+      for(const c of n.children){ if(find(c,anc.concat(n.id))) return true; }
+      return false;
+    })(root,[]);
+    rel.forEach(x=>marked.delete(x));
+    marked.add(id);
+  }
   drawTree(); saveSoon();
 });
 $('#rootLabel').addEventListener('input',e=>{ root.label=e.target.value; refresh(); });
